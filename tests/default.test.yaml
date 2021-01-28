@@ -1,6 +1,32 @@
 test_metadata:
   type: config
   name: default
-  description: set the description for your test
+  description: Changing the values of any defaults
 
-# Insert your tests here
+
+export_name: rabbit
+extra_tags:
+  name1: value2
+
+security_group_rules:
+  -
+    from: 5671
+    ip: 10.0.0.0/16
+    desc: allow access to amqps protocol
+  -
+    from: 443
+    ip: 10.0.0.0/16
+    desc: allow access to UI
+
+username: my_new_username
+auto_minor_upgrade: true
+enable_logs: false
+public_access: true
+
+
+maintenance_window:
+  DayOfWeek: Monday
+  TimeOfDay: '22:45'
+  TimeZone: America/Los_Angeles
+
+storage_type: gp3
