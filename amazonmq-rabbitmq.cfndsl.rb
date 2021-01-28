@@ -41,6 +41,7 @@ CloudFormation do
     Value "#{username}"
   }
 
+  # Only one set of creds can be created at launch when using rabbit
   broker_credentials = {
     Username: username,
     Password: FnGetAtt('PasswordSSMSecureParameter', 'Password')
@@ -50,6 +51,7 @@ CloudFormation do
   enable_logs = external_parameters.fetch(:enable_logs, true)
   public_access = external_parameters.fetch(:public_access, false)
   maintenance_window = external_parameters.fetch(:maintenance_window, nil)
+  storage_type = external_parameters.fetch(:storage_type, nil)
   AmazonMQ_Broker(:Broker) {
     AutoMinorVersionUpgrade auto_minor_upgrade
     BrokerName FnSub("${EnvironmentName}-#{export_name}")
@@ -61,9 +63,10 @@ CloudFormation do
     MaintenanceWindowStartTime maintenance_window unless maintenance_window.nil?
     PubliclyAccessible public_access
     SecurityGroups [Ref(:SecurityGroup)]
+    StorageType storage_type unless storage_type.nil?
     SubnetIds FnIf(:SingleInstance, [FnSelect(0, Ref(:SubnetIds))], Ref(:SubnetIds))
     Tags tags
-    Users broker_credentials
+    Users [broker_credentials]
   }
 
   Output(:SecurityGroup) {
@@ -77,7 +80,7 @@ CloudFormation do
   }
 
   Output(:AmqpEndpoints) {
-    Value(FnGetAtt(:Broker, :AmqpEndpoints))
+    Value(FnJoin(',', FnGetAtt(:Broker, :AmqpEndpoints)))
     Export FnSub("${EnvironmentName}-#{export_name}-AmqpEndpoints")
   }
 
