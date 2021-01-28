@@ -1,0 +1,85 @@
+CloudFormation do
+
+  Condition(:SingleInstance, FnEquals(Ref('DeploymentMode'), 'SINGLE_INSTANCE'))
+
+  export_name = external_parameters.fetch(:export_name, component_name)
+  tags = []
+  tags << { Key: 'Environment', Value: Ref('EnvironmentName') }
+  tags << { Key: 'EnvironmentType', Value: Ref('EnvironmentType') }
+  extra_tags = external_parameters.fetch(:extra_tags, {})
+  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
+
+
+  ip_blocks = external_parameters.fetch(:ip_blocks, {})
+  security_group_rules = external_parameters.fetch(:security_group_rules, [])
+
+  EC2_SecurityGroup(:SecurityGroup) {
+    VpcId Ref(:VPCId)
+    GroupDescription FnSub("${EnvironmentName}-#{export_name}")
+    if security_group_rules.any?
+      SecurityGroupIngress generate_security_group_rules(security_group_rules,ip_blocks)
+    end
+    Tags tags
+  }
+
+  username = external_parameters.fetch(:username, 'administrator')
+  Resource("PasswordSSMSecureParameter") {
+    Type "Custom::SSMSecureParameter"
+    Property('ServiceToken', FnGetAtt('SSMSecureParameterCR', 'Arn'))
+    Property('Path', FnSub("/#{export_name}/${EnvironmentName}/password"))
+    Property('Description', FnSub("${EnvironmentName} RabbitMQ User #{username} Password"))
+    Property('Tags',[
+      { Key: 'Name', Value: FnSub("${EnvironmentName}-#{username}-rabbitmq-password")},
+      { Key: 'Environment', Value: FnSub("${EnvironmentName}")},
+      { Key: 'EnvironmentType', Value: FnSub("${EnvironmentType}")}
+    ])
+  }
+
+  SSM_Parameter("UsernameParameterSecretKey") {
+    Name FnSub("/#{export_name}/${EnvironmentName}/username")
+    Type 'String'
+    Value "#{username}"
+  }
+
+  broker_credentials = {
+    Username: username,
+    Password: FnGetAtt('PasswordSSMSecureParameter', 'Password')
+  }
+
+  auto_minor_upgrade = external_parameters.fetch(:auto_minor_upgrade, false)
+  enable_logs = external_parameters.fetch(:enable_logs, true)
+  public_access = external_parameters.fetch(:public_access, false)
+  maintenance_window = external_parameters.fetch(:maintenance_window, nil)
+  AmazonMQ_Broker(:Broker) {
+    AutoMinorVersionUpgrade auto_minor_upgrade
+    BrokerName FnSub("${EnvironmentName}-#{export_name}")
+    DeploymentMode Ref(:DeploymentMode)
+    EngineType "RABBITMQ"
+    EngineVersion Ref(:EngineVersion)
+    HostInstanceType Ref(:HostInstanceType)
+    Logs enable_logs ? ({ General: true}) : ({ General: false})
+    MaintenanceWindowStartTime maintenance_window unless maintenance_window.nil?
+    PubliclyAccessible public_access
+    SecurityGroups [Ref(:SecurityGroup)]
+    SubnetIds FnIf(:SingleInstance, [FnSelect(0, Ref(:SubnetIds))], Ref(:SubnetIds))
+    Tags tags
+    Users broker_credentials
+  }
+
+  Output(:SecurityGroup) {
+    Value(Ref(:SecurityGroup))
+    Export FnSub("${EnvironmentName}-#{export_name}-SecurityGroup")
+  }
+
+  Output(:BrokerArn) {
+    Value(FnGetAtt(:Broker, :Arn))
+    Export FnSub("${EnvironmentName}-#{export_name}-Arn")
+  }
+
+  Output(:AmqpEndpoints) {
+    Value(FnGetAtt(:Broker, :AmqpEndpoints))
+    Export FnSub("${EnvironmentName}-#{export_name}-AmqpEndpoints")
+  }
+
+
+end

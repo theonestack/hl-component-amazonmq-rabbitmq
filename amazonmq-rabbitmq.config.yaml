@@ -1,0 +1,22 @@
+# SSM Custom resource to create secret ssm parameter for master password
+ssm_custom_resources:
+  custom_policies:
+    ssm:
+      action:
+        - ssm:AddTagsToResource
+        - ssm:DeleteParameter
+        - ssm:PutParameter
+        - ssm:GetParameters
+      resource: '*'
+  roles:
+    SSMParameterCustomResource:
+      policies_inline:
+        - cloudwatch-logs
+        - ssm
+  functions:
+    SSMSecureParameterCR:
+      code: handler.py
+      handler: handler.lambda_handler
+      runtime: python3.6
+      timeout: 5
+      role: SSMParameterCustomResource
