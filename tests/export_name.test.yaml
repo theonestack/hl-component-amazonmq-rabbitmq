@@ -1,0 +1,6 @@
+test_metadata:
+  type: config
+  name: export_name
+  description: override the cfn output export prefix from component_name to a custom name
+
+export_name: rabbit

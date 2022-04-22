@@ -1,0 +1,16 @@
+test_metadata:
+  type: config
+  name: rabbit_config
+  description: override default rabbitMQ config
+
+username: my_new_username
+auto_minor_upgrade: true
+enable_logs: false
+public_access: true
+
+maintenance_window:
+  DayOfWeek: Monday
+  TimeOfDay: '22:45'
+  TimeZone: America/Los_Angeles
+
+storage_type: gp3
