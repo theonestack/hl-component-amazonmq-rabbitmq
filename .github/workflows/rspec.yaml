@@ -1,4 +1,6 @@
-on: push
+name: cftest
+
+on: [push, pull_request]
 
 jobs:
   test:
@@ -7,16 +9,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: set up ruby 2.6
+    - name: set up ruby 2.7
       uses: actions/setup-ruby@v1
       with:
-        ruby-version: 2.6.x
+        ruby-version: 2.7.x
     - name: install gems
-      run: gem install cfhighlander rspec
+      run: gem install cfhighlander rspec 
     - name: set cfndsl spec
-      run: cfndsl -u 11.0.0
+      run: cfndsl -u
     - name: cftest
-      run: cfhighlander cftest
+      run: rspec
       env:
         AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
