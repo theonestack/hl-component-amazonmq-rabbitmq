@@ -47,6 +47,52 @@ CloudFormation do
     Password: FnGetAtt('PasswordSSMSecureParameter', 'Password')
   }
 
+  broker_users = []
+  broker_users << broker_credentials
+  additional_users = external_parameters.fetch(:additional_users, [])
+  additional_users.each_with_index do |user,i|
+    case user['type']
+    when "static"
+      username = user['username']
+      password = user['password']
+      broker_users << {
+        Username: username,
+        Password: password
+      }
+    when "ssm"
+      username = FnSub("{{resolve:ssm:#{user['username']}}}")
+      password = FnSub("{{resolve:ssm:#{user['password']}}}")
+      broker_users << {
+        Username: username,
+        Password: password
+      }
+    when "ssm-generate"
+      username = user['username']
+      SSM_Parameter("UsernameParameter#{i+1}") {
+        Name FnSub("#{user['ssmusername']}")
+        Type 'String'
+        Value "#{username}"
+      }
+      Resource("PasswordParameter#{i+1}") {
+        Type "Custom::SSMSecureParameter"
+        Property('ServiceToken', FnGetAtt('SSMSecureParameterCR', 'Arn'))
+        Property('Path', FnSub("#{user['ssmpassword']}"))
+        Property('Description', FnSub("${EnvironmentName} RabbitMQ User #{username} Password"))
+        Property('Tags',[
+          { Key: 'Name', Value: FnSub("${EnvironmentName}-#{username}-rabbitmq-password")},
+          { Key: 'Environment', Value: FnSub("${EnvironmentName}")},
+          { Key: 'EnvironmentType', Value: FnSub("${EnvironmentType}")}
+        ])
+      }
+      password = FnGetAtt("PasswordParameter#{i+1}", 'Password')
+      broker_users << {
+        Username: username,
+        Password: password
+      }
+    end
+
+  end
+
   auto_minor_upgrade = external_parameters.fetch(:auto_minor_upgrade, false)
   enable_logs = external_parameters.fetch(:enable_logs, true)
   public_access = external_parameters.fetch(:public_access, false)
@@ -66,7 +112,7 @@ CloudFormation do
     StorageType storage_type unless storage_type.nil?
     SubnetIds FnIf(:SingleInstance, [FnSelect(0, Ref(:SubnetIds))], Ref(:SubnetIds))
     Tags tags
-    Users [broker_credentials]
+    Users broker_users
   }
 
   Output(:SecurityGroup) {

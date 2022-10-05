@@ -1,0 +1,20 @@
+test_metadata:
+  type: config
+  name: additonal_users
+  description: tests additonal broker users
+
+additional_users:
+  - type: static
+    username: guest
+    password: guest
+    
+#fetches creds from an existing SSM parameters
+  - type: ssm
+    username: /test/myusername
+    ssmpassword: /test/mypassword
+
+#generates a random password and store the username and password in SSM
+  - type: ssm-generate
+    username: test2
+    ssmusername: /test/${EnvironmentName}/myusername
+    ssmpassword: /test/${EnvironmentName}/mypassword
