@@ -112,7 +112,7 @@ CloudFormation do
     StorageType storage_type unless storage_type.nil?
     SubnetIds FnIf(:SingleInstance, [FnSelect(0, Ref(:SubnetIds))], Ref(:SubnetIds))
     Tags tags
-    Users broker_users
+    Users [broker_credentials]
   }
 
   Output(:SecurityGroup) {

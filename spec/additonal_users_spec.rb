@@ -131,15 +131,16 @@ describe 'compiled component amazonmq-rabbitmq' do
       it "to have property Tags" do
           expect(resource["Properties"]["Tags"]).to eq([{"Key"=>"Environment", "Value"=>{"Ref"=>"EnvironmentName"}}, {"Key"=>"EnvironmentType", "Value"=>{"Ref"=>"EnvironmentType"}}])
       end
-      
-      it "to have property Users" do
-          expect(resource["Properties"]["Users"]).to eq([
-            {"Username"=>"administrator", "Password"=>{"Fn::GetAtt"=>["PasswordSSMSecureParameter", "Password"]}},
-            {"Username"=>"guest", "Password"=>"guest"},
-            {"Username"=>{"Fn::Sub"=>"{{resolve:ssm:/test/myusername}}"}, "Password"=>{"Fn::Sub"=>"{{resolve:ssm:}}"}},
-            {"Username"=>"test2", "Password"=>{"Fn::GetAtt"=>["PasswordParameter3", "Password"]}}
-          ])
-      end
+    
+    # Add when we have support for additional users
+    #   it "to have property Users" do
+    #       expect(resource["Properties"]["Users"]).to eq([
+    #         {"Username"=>"administrator", "Password"=>{"Fn::GetAtt"=>["PasswordSSMSecureParameter", "Password"]}},
+    #         {"Username"=>"guest", "Password"=>"guest"},
+    #         {"Username"=>{"Fn::Sub"=>"{{resolve:ssm:/test/myusername}}"}, "Password"=>{"Fn::Sub"=>"{{resolve:ssm:}}"}},
+    #         {"Username"=>"test2", "Password"=>{"Fn::GetAtt"=>["PasswordParameter3", "Password"]}}
+    #       ])
+    #   end
       
     end
     
